@@ -2,6 +2,8 @@ package com.mengxinya.ys.sql.repository;
 
 import com.mengxinya.ys.sql.ResultItem;
 import com.mengxinya.ys.sql.RowStuffer;
+import com.mengxinya.ys.sql.SqlUtils;
+import com.mengxinya.ys.sql.condition.ParamsCondition;
 import com.mengxinya.ys.sql.condition.SqlCondition;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,25 +17,27 @@ import org.springframework.util.StringUtils;
 
 import java.beans.PropertyDescriptor;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
-public class DefaultSqlDataRepository<T> implements DataRepository<T> {
+public class DefaultSqlDataRepository<T> implements DataSqlRepository<T> {
     private final Class<T> mappedClass;
 
-    private Map<String, Object> params;
+    private Map<String, Object> params = new HashMap<>();
 
 
     private Statement selectStatement;
     private Statement fromStatement;
     private Statement whereStatement;
-    private Statement groupStatement;
+    private Statement groupByStatement;
     private Statement havingStatement;
-    private Statement orderStatement;
+    private Statement orderByStatement;
     private Statement limitStatement;
+    private Statement joinStatement;
+
+    private final String name = SqlUtils.shortUuid();
 
     public DefaultSqlDataRepository(Class<T> mappedClass) {
         this.mappedClass = mappedClass;
@@ -41,17 +45,7 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
     }
 
 
-    @Override
-    public String toSql() {
-        return "select " + (selectStatement == null ? "*" : selectStatement.toSql() )
-                + " from " + fromStatement.toSql()
-                + (whereStatement == null ? "" : " where " + whereStatement.toSql())
-                + (groupStatement == null ? "" : " group by " + groupStatement.toSql())
-                + (havingStatement == null ? "" : " having " + havingStatement.toSql())
-                + (orderStatement == null ? "" : " order by " + orderStatement.toSql())
-                + (limitStatement == null ? "" : " limit " + limitStatement.toSql());
 
-    }
 
     @Override
     public Map<String, Object> getParams() {
@@ -133,7 +127,7 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
 
     @Override
     public String getName() {
-        return this.mappedClass.getSimpleName();
+        return name;
     }
 
     public void addWhere(SqlCondition condition) {
@@ -141,7 +135,18 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
             this.whereStatement = condition::toSql;
         }
         else {
-            this.whereStatement = () -> whereStatement.toSql() + " and " + condition.toSql();
+            String sql = whereStatement.toSql();
+            this.whereStatement = () -> (sql + " and " + condition.toSql());
         }
+    }
+
+    public void addWhere(ParamsCondition condition) {
+        this.params.putAll(condition.getParams());
+        addWhere((SqlCondition)condition);
+    }
+
+    @Override
+    public List<String> getFieldNames() {
+        return Arrays.stream(mappedClass.getDeclaredFields()).map(field -> SqlUtils.toUnderlineCase(field.getName())).collect(Collectors.toList());
     }
 }

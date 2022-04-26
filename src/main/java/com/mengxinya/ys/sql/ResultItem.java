@@ -4,8 +4,12 @@ import java.sql.SQLException;
 
 public interface ResultItem {
     boolean nextRow() throws SQLException;
-    boolean previousRow() throws SQLException;
+    void skipTheNext();
     String currentColumnName() throws SQLException;
     Object currentColumnValue(Class<?> propertyType) throws SQLException;
     void nextColumn();
+
+    int getColumnIndex();
+
+    void setColumnIndex(int index);
 }

@@ -1,5 +1,6 @@
 package com.mengxinya.ys.sql.repository;
 
+import com.mengxinya.ys.sql.condition.ParamsCondition;
 import com.mengxinya.ys.sql.condition.SqlCondition;
 
 public class DataRepositoryBuilder<T> {
@@ -13,7 +14,7 @@ public class DataRepositoryBuilder<T> {
         return new DataRepositoryBuilder<>(new DefaultSqlDataRepository<>(mappedClass));
     }
 
-    public DataRepositoryBuilder<T> where(SqlCondition condition) {
+    public DataRepositoryBuilder<T> where(ParamsCondition condition) {
         dataRepository.addWhere(condition);
         return this;
     }

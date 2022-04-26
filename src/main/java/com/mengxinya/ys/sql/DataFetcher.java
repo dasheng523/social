@@ -24,22 +24,29 @@ public class DataFetcher {
         return jdbcTemplate.query(repository.toSql(), repository.getParams(), (rs, rowNum) -> repository.getRowStuffer().fillRow(
                 new ResultItem() {
                     private int current = 1;
+                    private boolean isSkip = false;
 
                     @Override
                     public boolean nextRow() throws SQLException {
+                        current = 1;
+                        if (isSkip) {
+                            isSkip = false;
+                            return true;
+                        }
                         return rs.next();
                     }
 
                     @Override
-                    public boolean previousRow() throws SQLException {
-                        return rs.previous();
+                    public void skipTheNext() {
+                        isSkip = true;
                     }
 
                     @Override
                     public String currentColumnName() throws SQLException {
                         String field = JdbcUtils.lookupColumnName(rs.getMetaData(), current);
-                        if (field.startsWith(repository.getName() + "_")) {
-                            return field.substring((repository.getName() + "_").length());
+                        if (field.startsWith(repository.getName() + ".")) {
+                            String[] pies = field.split("\\.");
+                            return pies[pies.length - 1];
                         }
                         return field;
                     }
@@ -52,6 +59,16 @@ public class DataFetcher {
                     @Override
                     public void nextColumn() {
                         current++;
+                    }
+
+                    @Override
+                    public int getColumnIndex() {
+                        return current;
+                    }
+
+                    @Override
+                    public void setColumnIndex(int index) {
+                        this.current = index;
                     }
                 }));
     }
