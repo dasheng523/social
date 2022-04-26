@@ -8,4 +8,6 @@ public interface DataRepository<T> {
     String toSql();
     Map<String, Object> getParams();
     RowStuffer<T> getRowStuffer();
+
+    String getName();
 }

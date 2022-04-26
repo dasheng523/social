@@ -14,6 +14,7 @@ import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.util.StringUtils;
 
 import java.beans.PropertyDescriptor;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -36,6 +37,7 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
 
     public DefaultSqlDataRepository(Class<T> mappedClass) {
         this.mappedClass = mappedClass;
+        this.fromStatement = () -> StringUtils.uncapitalize(mappedClass.getSimpleName()) + " as " + mappedClass.getSimpleName();
     }
 
 
@@ -100,7 +102,7 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
 
 
             @Override
-            public T fillRow(ResultItem rs) {
+            public T fillRow(ResultItem rs) throws SQLException {
                 BeanWrapperImpl bw = new BeanWrapperImpl();
                 ConversionService cs = DefaultConversionService.getSharedInstance();
                 bw.setConversionService(cs);
@@ -115,7 +117,7 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
                     PropertyDescriptor pd = this.mappedFields.get(field);
                     if (pd != null) {
                         try {
-                            Object value = rs.currentColumnValue();
+                            Object value = rs.currentColumnValue(pd.getPropertyType());
                             bw.setPropertyValue(pd.getName(), value);
                         }
                         catch (NotWritablePropertyException ex) {
@@ -127,6 +129,11 @@ public class DefaultSqlDataRepository<T> implements DataRepository<T> {
                 return mappedObject;
             }
         };
+    }
+
+    @Override
+    public String getName() {
+        return this.mappedClass.getSimpleName();
     }
 
     public void addWhere(SqlCondition condition) {
