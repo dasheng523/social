@@ -1,11 +1,16 @@
 package com.mengxinya.ys.sql;
 
 import com.mengxinya.ys.sql.repository.DataRepository;
+import org.springframework.jdbc.InvalidResultSetAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.JdbcUtils;
+import org.springframework.jdbc.support.rowset.ResultSetWrappingSqlRowSet;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
+import org.springframework.util.StringUtils;
 import org.sqlite.SQLiteDataSource;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DataFetcher {
@@ -21,55 +26,79 @@ public class DataFetcher {
 
 
     public static <T> List<T> getList(DataRepository<T> repository) {
-        return jdbcTemplate.query(repository.toSql(), repository.getParams(), (rs, rowNum) -> repository.getRowStuffer().fillRow(
-                new ResultItem() {
-                    private int current = 1;
-                    private boolean isSkip = false;
+        SqlRowSet rs = jdbcTemplate.queryForRowSet(repository.toSql(), repository.getParams());
+        List<T> tList = new ArrayList<>();
+        while (true) {
+            boolean hasNext;
+            try {
+                hasNext = rs.next();
+            } catch (InvalidResultSetAccessException e) {
+                hasNext = false;
+            }
 
-                    @Override
-                    public boolean nextRow() throws SQLException {
-                        current = 1;
-                        if (isSkip) {
-                            isSkip = false;
-                            return true;
+            if (!hasNext) {
+                break;
+            }
+
+            T tObj = repository.getRowStuffer().fillRow(
+                    new ResultItem() {
+                        private int current = 1;
+
+                        @Override
+                        public boolean nextRow() {
+                            current = 1;
+                            return rs.next();
                         }
-                        return rs.next();
-                    }
 
-                    @Override
-                    public void skipTheNext() {
-                        isSkip = true;
-                    }
+                        @Override
+                        public void prevRow() {
+                            current = 1;
+                            rs.previous();
+                        }
 
-                    @Override
-                    public String currentColumnName() throws SQLException {
-                        String field = JdbcUtils.lookupColumnName(rs.getMetaData(), current);
-                        if (field.startsWith(repository.getName() + ".")) {
+                        @Override
+                        public String currentColumnName() {
+                            String field = rs.getMetaData().getColumnLabel(current);
+                            if (!StringUtils.hasLength(field)) {
+                                field = rs.getMetaData().getColumnName(current);
+                            }
                             String[] pies = field.split("\\.");
                             return pies[pies.length - 1];
                         }
-                        return field;
-                    }
 
-                    @Override
-                    public Object currentColumnValue(Class<?> propertyType) throws SQLException {
-                        return JdbcUtils.getResultSetValue(rs, current, propertyType);
-                    }
+                        @Override
+                        public Object currentColumnValue(Class<?> propertyType) {
+                            if (rs instanceof ResultSetWrappingSqlRowSet rowSet) {
+                                try {
+                                    return JdbcUtils.getResultSetValue(rowSet.getResultSet(), current, propertyType);
+                                } catch (SQLException e) {
+                                    throw new DataRepositoryException("读取字段值失败", e);
+                                }
+                            }
+                            else {
+                                return rs.getObject(current);
+                            }
+                        }
 
-                    @Override
-                    public void nextColumn() {
-                        current++;
-                    }
+                        @Override
+                        public void nextColumn() {
+                            current++;
+                        }
 
-                    @Override
-                    public int getColumnIndex() {
-                        return current;
-                    }
+                        @Override
+                        public int getColumnIndex() {
+                            return current;
+                        }
 
-                    @Override
-                    public void setColumnIndex(int index) {
-                        this.current = index;
-                    }
-                }));
+                        @Override
+                        public void setColumnIndex(int index) {
+                            this.current = index;
+                        }
+                    });
+
+            tList.add(tObj);
+
+        }
+        return tList;
     }
 }

@@ -33,7 +33,7 @@ public class DataRepositories {
                         M manyObj = many.getRowStuffer().fillRow(rs);
 
                         if (!condition.check(oneObj, manyObj)) {
-                            rs.skipTheNext();
+                            rs.prevRow();
                             break;
                         }
 

@@ -81,6 +81,6 @@ public class SqlUtils {
             //用该16进制数取模62（十六进制表示为314（14即E）），结果作为索引取出字符
             shortBuffer.append(chars[x % 0x3E]);
         }
-        return shortBuffer.toString();
+        return "x" + shortBuffer;
     }
 }

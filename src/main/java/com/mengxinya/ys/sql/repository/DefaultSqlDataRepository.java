@@ -16,7 +16,6 @@ import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.util.StringUtils;
 
 import java.beans.PropertyDescriptor;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -96,7 +95,7 @@ public class DefaultSqlDataRepository<T> implements DataSqlRepository<T> {
 
 
             @Override
-            public T fillRow(ResultItem rs) throws SQLException {
+            public T fillRow(ResultItem rs) {
                 BeanWrapperImpl bw = new BeanWrapperImpl();
                 ConversionService cs = DefaultConversionService.getSharedInstance();
                 bw.setConversionService(cs);
@@ -119,6 +118,7 @@ public class DefaultSqlDataRepository<T> implements DataSqlRepository<T> {
                                     "Unable to map column '" + field + "' to property '" + pd.getName() + "'", ex);
                         }
                     }
+                    rs.nextColumn();
                 }
                 return mappedObject;
             }

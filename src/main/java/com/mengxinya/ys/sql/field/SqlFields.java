@@ -21,6 +21,6 @@ public class SqlFields {
     }
 
     public static SqlField of(DataRepository<?> repository, String field) {
-        return () -> repository.getName() + "." + field;
+        return () -> repository.getName() + "." + SqlUtils.toUnderlineCase(field);
     }
 }

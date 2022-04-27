@@ -1,12 +1,10 @@
 package com.mengxinya.ys.sql;
 
-import java.sql.SQLException;
-
 public interface ResultItem {
-    boolean nextRow() throws SQLException;
-    void skipTheNext();
-    String currentColumnName() throws SQLException;
-    Object currentColumnValue(Class<?> propertyType) throws SQLException;
+    boolean nextRow();
+    void prevRow();
+    String currentColumnName();
+    Object currentColumnValue(Class<?> propertyType);
     void nextColumn();
 
     int getColumnIndex();
