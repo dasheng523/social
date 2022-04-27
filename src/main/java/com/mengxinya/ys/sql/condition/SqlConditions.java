@@ -1,14 +1,14 @@
 package com.mengxinya.ys.sql.condition;
 
 import com.mengxinya.ys.sql.SqlUtils;
+import com.mengxinya.ys.sql.field.EntitySqlField;
 import com.mengxinya.ys.sql.field.SqlField;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 public class SqlConditions {
-    public static ParamsCondition eq(SqlField field, Object val) {
+    public static <T> ParamsCondition eqVal(SqlField<T> field, T val) {
         String key = SqlUtils.shortUuid();
         return new ParamsCondition() {
             @Override
@@ -25,12 +25,14 @@ public class SqlConditions {
         };
     }
 
-    // TODO func能否去掉？因为都相等了，何必多此一举？
-    public static <O, M> CheckerCondition<O, M> eq(SqlField field1, SqlField field2, BiFunction<O, M, Boolean> func) {
+    public static <O, M, F1, F2> CheckerCondition<O, M> eq(EntitySqlField<O, F1> field1, EntitySqlField<M, F2> field2) {
         return new CheckerCondition<>() {
+
             @Override
             public boolean check(O o, M m) {
-                return func.apply(o, m);
+                F1 oVal = field1.getFieldVal(o);
+                F2 mVal = field2.getFieldVal(m);
+                return oVal.equals(mVal);
             }
 
             @Override
@@ -39,4 +41,5 @@ public class SqlConditions {
             }
         };
     }
+
 }

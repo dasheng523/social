@@ -37,6 +37,17 @@ public class SqlUtils {
     }
 
     /**
+     * 首字母大写
+     * @param name str
+     * @return str
+     */
+    public static String captureName(String name) {
+        name = name.substring(0, 1).toUpperCase() + name.substring(1);
+        return  name;
+
+    }
+
+    /**
      * 驼峰转 下划线
      * userName  ---->  user_name
      * user_name  ---->  user_name
