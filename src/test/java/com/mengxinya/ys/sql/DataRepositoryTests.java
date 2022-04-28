@@ -23,7 +23,7 @@ public class DataRepositoryTests {
 
         List<Student> students = DataFetcher.getList(dataRepository);
         Assertions.assertTrue(students.size() > 2);
-        Assertions.assertEquals("里斯", students.get(0).getName());
+        Assertions.assertEquals("里斯", students.get(0).name());
     }
 
     @Test
@@ -35,7 +35,7 @@ public class DataRepositoryTests {
 
         List<Student> students = DataFetcher.getList(dataRepository);
         Assertions.assertEquals(1, students.size());
-        Assertions.assertEquals("里斯", students.get(0).getName());
+        Assertions.assertEquals("里斯", students.get(0).name());
     }
 
     @Test
@@ -48,7 +48,7 @@ public class DataRepositoryTests {
 
         List<Student> students = DataFetcher.getList(dataRepository);
         Assertions.assertEquals(1, students.size());
-        Assertions.assertEquals("里斯", students.get(0).getName());
+        Assertions.assertEquals("里斯", students.get(0).name());
     }
 
     @Test
@@ -66,7 +66,7 @@ public class DataRepositoryTests {
         List<DataPair<Teacher, List<Student>>> data = DataFetcher.getList(repository);
         Assertions.assertTrue(data.size() > 1);
         Assertions.assertEquals("lili", data.get(0).x().getName());
-        Assertions.assertTrue( data.get(0).y().stream().anyMatch(item -> item.getName().equals("里斯")));
+        Assertions.assertTrue( data.get(0).y().stream().anyMatch(item -> item.name().equals("里斯")));
     }
 
 
@@ -86,16 +86,11 @@ public class DataRepositoryTests {
 
         List<DataPair<Student, Teacher>> data = DataFetcher.getList(repository);
         Assertions.assertTrue(data.size() > 1);
-        Assertions.assertEquals("里斯", data.get(0).x().getName());
+        Assertions.assertEquals("里斯", data.get(0).x().name());
         Assertions.assertEquals("lili", data.get(0).y().getName());
     }
 
-    @Data
-    public static class Student {
-        private Integer id;
-        private String name;
-        private int age;
-        private Integer teacherId;
+    public record Student (Integer id, String name, int age, Integer teacherId) {
     }
 
     @Data

@@ -1,5 +1,6 @@
 package com.mengxinya.ys.sql.field;
 
+import com.mengxinya.ys.sql.ClassUtils;
 import com.mengxinya.ys.sql.DataRepositoryException;
 import com.mengxinya.ys.sql.SqlUtils;
 import com.mengxinya.ys.sql.repository.DataRepository;
@@ -11,7 +12,7 @@ public class SqlFields {
         return new SqlField<>() {
             @Override
             public String toSql() {
-                return tClass.getSimpleName() + "." + SqlUtils.toUnderlineCase(fieldStr);
+                return tClass.getSimpleName() + "." + fieldStr;
             }
 
             @Override
@@ -87,17 +88,12 @@ public class SqlFields {
         return new EntitySqlField<>() {
             @Override
             public T getFieldVal(M m) {
-                try {
-                    Object val = m.getClass().getDeclaredMethod("get" + SqlUtils.captureName(field)).invoke(m);
-                    return fieldType.cast(val);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                    throw new DataRepositoryException("读取字段出问题", e);
-                }
+                return fieldType.cast(ClassUtils.getObjFieldVal(m, field));
             }
 
             @Override
             public String toSql() {
-                return repository.getName() + "." + SqlUtils.toUnderlineCase(field);
+                return repository.getName() + "." + field;
             }
 
             @Override
