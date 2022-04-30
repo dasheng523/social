@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static com.mengxinya.ys.sql.condition.SqlConditions.eqVal;
 
@@ -52,7 +53,7 @@ public class DataRepositoryTests {
     public void testHasMany() {
         DataSqlRepository<Student> studentDataRepository = DataRepositoryBuilder.from(Student.class).build();
         DataSqlRepository<Teacher> teacherDataRepository = DataRepositoryBuilder.from(Teacher.class).build();
-        DataSqlRepository<DataPair<Teacher, List<Student>>> repository = DataRepositories.hasMany(
+        DataSqlRepository<DataPair<Teacher, Set<Student>>> repository = DataRepositories.hasMany(
                 teacherDataRepository, studentDataRepository,
                 SqlConditions.eq(
                         SqlFields.of(teacherDataRepository, "id", Integer.class),
@@ -60,10 +61,41 @@ public class DataRepositoryTests {
                 )
         );
 
-        List<DataPair<Teacher, List<Student>>> data = DataFetcher.getList(repository);
+        List<DataPair<Teacher, Set<Student>>> data = DataFetcher.getList(repository);
         Assertions.assertTrue(data.size() > 1);
         Assertions.assertEquals("lili", data.get(0).x().getName());
         Assertions.assertTrue( data.get(0).y().stream().anyMatch(item -> item.name().equals("里斯")));
+    }
+
+    @Test
+    public void testHasMany2() {
+        DataSqlRepository<Teacher> teacherDataRepository = DataRepositoryBuilder.from(Teacher.class).build();
+        DataSqlRepository<Student> studentDataRepository = DataRepositoryBuilder.from(Student.class).build();
+        DataSqlRepository<TeacherDepartment> teacherDepartmentDataSqlRepository = DataRepositoryBuilder.from(TeacherDepartment.class).build();
+        DataSqlRepository<RelateManyResult<Teacher>> repository = DataRepositories.hasMany(
+                teacherDataRepository,
+                List.of(
+                        new RepositoryRelate<>(
+                                studentDataRepository,
+                                SqlConditions.eq(
+                                        SqlFields.of(teacherDataRepository, "id", Integer.class),
+                                        SqlFields.of(studentDataRepository, "teacherId", Integer.class)
+                                )
+                        ),
+                        new RepositoryRelate<>(
+                                teacherDepartmentDataSqlRepository,
+                                SqlConditions.eq(
+                                        SqlFields.of(teacherDataRepository, "id", Integer.class),
+                                        SqlFields.of(teacherDepartmentDataSqlRepository, "teacherId", Integer.class)
+                                )
+                        )
+                )
+        );
+
+        List<RelateManyResult<Teacher>> data = DataFetcher.getList(repository);
+        Assertions.assertTrue(data.size() > 1);
+        Assertions.assertEquals("lili", data.get(0).main().getName());
+        Assertions.assertEquals(1, data.get(0).getMany(teacherDepartmentDataSqlRepository).size());
     }
 
     @Test
@@ -131,6 +163,7 @@ public class DataRepositoryTests {
         Assertions.assertEquals("里斯", data.get(0).getOne(studentDataRepository).name());
         Assertions.assertEquals("数计系", data.get(0).getOne(departmentDataSqlRepository).name());
     }
+
 
     public record Student (Integer id, String name, int age, Integer teacherId) {
     }

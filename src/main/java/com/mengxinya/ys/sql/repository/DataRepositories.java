@@ -4,49 +4,58 @@ import com.mengxinya.ys.sql.DataPair;
 import com.mengxinya.ys.sql.RowStuffer;
 import com.mengxinya.ys.sql.condition.CheckerCondition;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DataRepositories {
-    public static <O, M> DataSqlRepository<DataPair<O, List<M>>> hasMany(DataSqlRepository<O> main, DataSqlRepository<M> other, CheckerCondition<O, M> condition) {
-        return new JoinSqlDataRepository<>(main, other, condition) {
+    public static <Main> DataSqlRepository<RelateManyResult<Main>> hasMany(DataSqlRepository<Main> main, List<RepositoryRelate<Main, ?>> relates) {
+        return new JoinSqlDataRepository<>(main, relates) {
 
             @Override
-            public RowStuffer<DataPair<O, List<M>>> getRowStuffer() {
+            public RowStuffer<RelateManyResult<Main>> getRowStuffer() {
                 return rs -> {
-                    O oneObj = main.getRowStuffer().fillRow(rs);
+                    Main oneObj = main.getRowStuffer().fillRow(rs);
                     int index = rs.getColumnIndex();
 
-                    List<M> mList = new ArrayList<>();
-                    while (true) {
+                    Map<String, Set<Object>> dataMap = new HashMap<>();
+
+                    OUT:
+                    do {
                         rs.setColumnIndex(index);
-                        M manyObj = other.getRowStuffer().fillRow(rs);
 
-                        if (!condition.check(oneObj, manyObj)) {
-                            rs.prevRow();
-                            break;
+                        for (var relate : relates) {
+                            var obj = relate.other().getRowStuffer().fillRow(rs);
+                            CheckerCondition condition = relate.condition();
+                            if (!condition.check(oneObj, obj)) {
+                                rs.prevRow();
+                                break OUT;
+                            }
+                            Set<Object> mList = dataMap.computeIfAbsent(relate.other().getName(), k -> new HashSet<>());
+                            mList.add(obj);
                         }
 
-                        mList.add(manyObj);
+                    } while (rs.nextRow());
 
-                        if (!rs.nextRow()) {
-                            break;
-                        }
-                    }
-                    return new DataPair<>(oneObj, mList);
+                    return new RelateManyResult<>(oneObj, dataMap);
                 };
             }
 
             @Override
             public String getName() {
-                return main.getName() + "_HasMany_" + other.getName();
+                return main.getName() + relates.stream().map(relate -> "_HasMany_" + relate.other().getName()).collect(Collectors.joining());
             }
 
         };
+    }
+
+    public static <O, M> DataSqlRepository<DataPair<O, Set<M>>> hasMany(DataSqlRepository<O> main, DataSqlRepository<M> other, CheckerCondition<O, M> condition) {
+        List<RepositoryRelate<O, ?>> relates = List.of(new RepositoryRelate<>(other, condition));
+        DataSqlRepository<RelateManyResult<O>> repository = hasMany(main, relates);
+        return convertDataRepository(repository, rowStuffer -> rs -> {
+            var data = rowStuffer.fillRow(rs);
+            return new DataPair<>(data.main(), data.getMany(other));
+        });
     }
 
     public static <Source, Target> DataSqlRepository<Target> convertDataRepository(DataSqlRepository<Source> sourceDataSqlRepository, Function<RowStuffer<Source>, RowStuffer<Target>> converter) {

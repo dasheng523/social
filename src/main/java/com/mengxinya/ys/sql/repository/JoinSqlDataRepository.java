@@ -38,7 +38,6 @@ public abstract class JoinSqlDataRepository<T, O, M> implements DataSqlRepositor
                     .stream()
                     .map(name -> main.getName() + "." + name + " as '" + main.getName() + "." + name + "'")
                     .collect(Collectors.joining(", "));
-
             String otherFields = relates.stream()
                     .map(
                             relate ->
