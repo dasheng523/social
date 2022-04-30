@@ -10,20 +10,23 @@ import java.util.stream.Collectors;
 
 public abstract class JoinSqlDataRepository<T, O, M> implements DataSqlRepository<T> {
     private final DataSqlRepository<O> main;
-    private final DataSqlRepository<M> other;
-    private final CheckerCondition<O, M> condition;
+
+    private final List<RepositoryRelate<O, ?>> relates;
 
     public JoinSqlDataRepository(DataSqlRepository<O> main, DataSqlRepository<M> other, CheckerCondition<O, M> condition) {
+        this(main, List.of(new RepositoryRelate<>(other, condition)));
+    }
+
+    public JoinSqlDataRepository(DataSqlRepository<O> main, List<RepositoryRelate<O, ?>> relates) {
         this.main = main;
-        this.other = other;
-        this.condition = condition;
+        this.relates = relates;
     }
 
 
     @Override
     public Map<String, Object> getParams() {
         Map<String, Object> map = new HashMap<>(main.getParams());
-        map.putAll(other.getParams());
+        relates.forEach(relate -> map.putAll(relate.other().getParams()));
         return map;
     }
 
@@ -31,11 +34,26 @@ public abstract class JoinSqlDataRepository<T, O, M> implements DataSqlRepositor
     public SqlQueryBuilder getSqlQueryBuilder() {
         Statement fromStatement = () -> "(" + main.toSql() + ") as " + main.getName();
         Statement selectStatement = () -> {
-            String oneSelect = main.getFieldNames().stream().map(name -> main.getName() + "." + name + " as '" + main.getName() + "." + name + "'").collect(Collectors.joining(", "));
-            String manySelect = other.getFieldNames().stream().map(name -> other.getName() + "." + name + " as '" + other.getName() + "." + name + "'").collect(Collectors.joining(", "));
-            return oneSelect + ", " + manySelect;
+            String mainFields = main.getFieldNames()
+                    .stream()
+                    .map(name -> main.getName() + "." + name + " as '" + main.getName() + "." + name + "'")
+                    .collect(Collectors.joining(", "));
+
+            String otherFields = relates.stream()
+                    .map(
+                            relate ->
+                                    relate.other()
+                                            .getFieldNames()
+                                            .stream()
+                                            .map(name ->
+                                                    relate.other().getName() + "." + name + " as '" + relate.other().getName() + "." + name + "'")
+                                            .collect(Collectors.joining(", "))
+                    )
+                    .collect(Collectors.joining(", "));
+
+            return mainFields + ", " + otherFields;
         };
-        Statement joinStatement = () -> "left join (" + other.toSql() + ") as " + other.getName() + " on " + condition.toSql();
+        Statement joinStatement = () -> relates.stream().map(relate -> "left join (" + relate.other().toSql() + ") as " + relate.other().getName() + " on " + relate.condition().toSql()).collect(Collectors.joining(" "));
 
         SqlQueryBuilder builder = SqlQueryBuilder.from(fromStatement);
         builder.setSelectStatement(selectStatement);
@@ -47,8 +65,11 @@ public abstract class JoinSqlDataRepository<T, O, M> implements DataSqlRepositor
     @Override
     public List<String> getFieldNames() {
         List<String> oneList = new ArrayList<>(main.getFieldNames().stream().map(name -> main.getName() + "." + name).toList());
-        List<String> manyList = other.getFieldNames().stream().map(name -> other.getName() + "." + name).toList();
-        oneList.addAll(manyList);
+        for (var relate : relates) {
+            var other = relate.other();
+            List<String> manyList = other.getFieldNames().stream().map(name -> other.getName() + "." + name).toList();
+            oneList.addAll(manyList);
+        }
         return oneList;
     }
 

@@ -5,26 +5,29 @@ import com.mengxinya.ys.sql.DataRepositoryException;
 import com.mengxinya.ys.sql.SqlUtils;
 import com.mengxinya.ys.sql.repository.DataRepository;
 
-import java.lang.reflect.InvocationTargetException;
-
 public class SqlFields {
     public static <T> SqlField<T> of(Class<?> tClass, String fieldStr, Class<T> fieldType) {
-        return new SqlField<>() {
-            @Override
-            public String toSql() {
-                return tClass.getSimpleName() + "." + fieldStr;
-            }
+        try {
+            tClass.getDeclaredField(fieldStr);
+            return new SqlField<>() {
+                @Override
+                public String toSql() {
+                    return tClass.getSimpleName() + "." + fieldStr;
+                }
 
-            @Override
-            public Class<T> getFieldType() {
-                return fieldType;
-            }
+                @Override
+                public Class<T> getFieldType() {
+                    return fieldType;
+                }
 
-            @Override
-            public String getFieldName() {
-                return fieldStr;
-            }
-        };
+                @Override
+                public String getFieldName() {
+                    return fieldStr;
+                }
+            };
+        } catch (NoSuchFieldException e) {
+            throw new DataRepositoryException("字段不存在", e);
+        }
     }
 
     public static <T> SqlField<T> named(SqlField<T> field, String asName) {
@@ -85,6 +88,9 @@ public class SqlFields {
     }
 
     public static <M, T> EntitySqlField<M, T> of(DataRepository<M> repository, String field, Class<T> fieldType) {
+        if (repository.getFieldNames().stream().noneMatch(item -> item.endsWith(field))) {
+            throw new DataRepositoryException("字段不存在");
+        }
         return new EntitySqlField<>() {
             @Override
             public T getFieldVal(M m) {

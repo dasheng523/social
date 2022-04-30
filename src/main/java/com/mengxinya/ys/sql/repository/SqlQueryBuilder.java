@@ -1,5 +1,6 @@
 package com.mengxinya.ys.sql.repository;
 
+import com.mengxinya.ys.sql.SqlUtils;
 import com.mengxinya.ys.sql.condition.ParamsCondition;
 import com.mengxinya.ys.sql.condition.SqlCondition;
 import lombok.Data;
@@ -18,7 +19,7 @@ public class SqlQueryBuilder implements SqlQuery{
 
     public static SqlQueryBuilder from(Class<?> mappedClass) {
         SqlQueryBuilder builder = new SqlQueryBuilder();
-        builder.setFromStatement(() ->StringUtils.uncapitalize(mappedClass.getSimpleName()));
+        builder.setFromStatement(() -> SqlUtils.toUnderlineCase(StringUtils.uncapitalize(mappedClass.getSimpleName())));
         return builder;
     }
 

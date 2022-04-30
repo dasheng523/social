@@ -2,10 +2,7 @@ package com.mengxinya.ys.sql;
 
 import com.mengxinya.ys.sql.condition.SqlConditions;
 import com.mengxinya.ys.sql.field.SqlFields;
-import com.mengxinya.ys.sql.repository.DataRepositories;
-import com.mengxinya.ys.sql.repository.DataRepository;
-import com.mengxinya.ys.sql.repository.DataRepositoryBuilder;
-import com.mengxinya.ys.sql.repository.DataSqlRepository;
+import com.mengxinya.ys.sql.repository.*;
 import lombok.Data;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -69,6 +66,19 @@ public class DataRepositoryTests {
         Assertions.assertTrue( data.get(0).y().stream().anyMatch(item -> item.name().equals("里斯")));
     }
 
+    @Test
+    public void testInvalidField() {
+        Assertions.assertThrowsExactly(DataRepositoryException.class, () -> {
+            DataSqlRepository<Teacher> teacherDataRepository = DataRepositoryBuilder.from(Teacher.class).build();
+            SqlFields.of(teacherDataRepository, "teacherId", Integer.class);
+        });
+    }
+
+    @Test
+    public void testInvalidField2() {
+        Assertions.assertThrowsExactly(DataRepositoryException.class, () -> SqlFields.of(Teacher.class, "teacherId", Integer.class));
+    }
+
 
     @Test
     public void testHasOne() {
@@ -92,22 +102,34 @@ public class DataRepositoryTests {
 
     @Test
     public void testHasOne2() {
+        DataSqlRepository<StudentDepartment> studentDepartmentDataSqlRepository = DataRepositoryBuilder.from(StudentDepartment.class).build();
         DataSqlRepository<Student> studentDataRepository = DataRepositoryBuilder.from(Student.class).build();
-        DataSqlRepository<Teacher> teacherDataRepository = DataRepositoryBuilder.from(Teacher.class).build();
+        DataSqlRepository<Department> departmentDataSqlRepository = DataRepositoryBuilder.from(Department.class).build();
 
-        DataSqlRepository<DataPair<Student, Teacher>> repository = DataRepositories.hasOne(
-                studentDataRepository,
-                teacherDataRepository,
-                SqlConditions.eq(
-                        SqlFields.of(studentDataRepository, "teacherId", Integer.class),
-                        SqlFields.of(teacherDataRepository, "id", Integer.class)
+        DataSqlRepository<RelateOneResult<StudentDepartment>> repository = DataRepositories.hasOne(
+                studentDepartmentDataSqlRepository,
+                List.of(
+                        new RepositoryRelate<>(
+                                studentDataRepository,
+                                SqlConditions.eq(
+                                        SqlFields.of(studentDepartmentDataSqlRepository, "studentId", Integer.class),
+                                        SqlFields.of(studentDataRepository, "id", Integer.class)
+                                )
+                        ),
+                        new RepositoryRelate<>(
+                                departmentDataSqlRepository,
+                                SqlConditions.eq(
+                                        SqlFields.of(studentDepartmentDataSqlRepository, "departmentId", Integer.class),
+                                        SqlFields.of(departmentDataSqlRepository, "id", Integer.class)
+                                )
+                        )
                 )
         );
 
-        List<DataPair<Student, Teacher>> data = DataFetcher.getList(repository);
+        List<RelateOneResult<StudentDepartment>> data = DataFetcher.getList(repository);
         Assertions.assertTrue(data.size() > 1);
-        Assertions.assertEquals("里斯", data.get(0).x().name());
-        Assertions.assertEquals("lili", data.get(0).y().getName());
+        Assertions.assertEquals("里斯", data.get(0).getOne(studentDataRepository).name());
+        Assertions.assertEquals("数计系", data.get(0).getOne(departmentDataSqlRepository).name());
     }
 
     public record Student (Integer id, String name, int age, Integer teacherId) {
