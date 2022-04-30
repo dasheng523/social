@@ -4,11 +4,8 @@ import com.mengxinya.ys.sql.ClassUtils;
 import com.mengxinya.ys.sql.DataRepositoryException;
 import com.mengxinya.ys.sql.RowStuffer;
 import com.mengxinya.ys.sql.SqlUtils;
-import com.mengxinya.ys.sql.condition.ParamsCondition;
-import com.mengxinya.ys.sql.condition.SqlCondition;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -25,23 +22,16 @@ public class DefaultSqlDataRepository<T> implements DataSqlRepository<T> {
     private Map<String, Object> params = new HashMap<>();
 
 
-    private Statement selectStatement;
-    private Statement fromStatement;
-    private Statement whereStatement;
-    private Statement groupByStatement;
-    private Statement havingStatement;
-    private Statement orderByStatement;
-    private Statement limitStatement;
-    private Statement joinStatement;
+    private SqlQueryBuilder queryBuilder;
 
     private final String name = SqlUtils.shortUuid();
     private final List<String> fieldNames;
 
     public DefaultSqlDataRepository(Class<T> mappedClass) {
         this.mappedClass = mappedClass;
-        this.fromStatement = () -> StringUtils.uncapitalize(mappedClass.getSimpleName()) + " as " + mappedClass.getSimpleName();
         this.fieldNames = Arrays.stream(mappedClass.getDeclaredFields()).map(Field::getName).collect(Collectors.toList());
-        this.selectStatement = () -> this.fieldNames.stream().map(name -> SqlUtils.toUnderlineCase(name) + " as " + name).collect(Collectors.joining(", "));
+        this.queryBuilder = SqlQueryBuilder.from(mappedClass);
+        this.queryBuilder.setSelectStatement(() -> this.fieldNames.stream().map(name -> SqlUtils.toUnderlineCase(name) + " as " + name).collect(Collectors.joining(", ")));
     }
 
 
@@ -71,24 +61,15 @@ public class DefaultSqlDataRepository<T> implements DataSqlRepository<T> {
     }
 
     @Override
+    public SqlQueryBuilder getSqlQueryBuilder() {
+        return this.queryBuilder;
+    }
+
+    @Override
     public String getName() {
         return name;
     }
 
-    public void addWhere(SqlCondition condition) {
-        if (this.whereStatement == null) {
-            this.whereStatement = condition::toSql;
-        }
-        else {
-            String sql = whereStatement.toSql();
-            this.whereStatement = () -> (sql + " and " + condition.toSql());
-        }
-    }
-
-    public void addWhere(ParamsCondition condition) {
-        this.params.putAll(condition.getParams());
-        addWhere((SqlCondition)condition);
-    }
 
     @Override
     public List<String> getFieldNames() {

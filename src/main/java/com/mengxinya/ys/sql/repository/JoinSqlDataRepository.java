@@ -28,23 +28,21 @@ public abstract class JoinSqlDataRepository<T, O, M> implements DataSqlRepositor
     }
 
     @Override
-    public Statement getSelectStatement() {
-        return () -> {
+    public SqlQueryBuilder getSqlQueryBuilder() {
+        Statement fromStatement = () -> "(" + main.toSql() + ") as " + main.getName();
+        Statement selectStatement = () -> {
             String oneSelect = main.getFieldNames().stream().map(name -> main.getName() + "." + name + " as '" + main.getName() + "." + name + "'").collect(Collectors.joining(", "));
             String manySelect = other.getFieldNames().stream().map(name -> other.getName() + "." + name + " as '" + other.getName() + "." + name + "'").collect(Collectors.joining(", "));
             return oneSelect + ", " + manySelect;
         };
+        Statement joinStatement = () -> "left join (" + other.toSql() + ") as " + other.getName() + " on " + condition.toSql();
+
+        SqlQueryBuilder builder = SqlQueryBuilder.from(fromStatement);
+        builder.setSelectStatement(selectStatement);
+        builder.setJoinStatement(joinStatement);
+        return builder;
     }
 
-    @Override
-    public Statement getFromStatement() {
-        return () -> "(" + main.toSql() + ") as " + main.getName();
-    }
-
-    @Override
-    public Statement getJoinStatement() {
-        return () -> "left join (" + other.toSql() + ") as " + other.getName() + " on " + condition.toSql();
-    }
 
     @Override
     public List<String> getFieldNames() {

@@ -90,6 +90,26 @@ public class DataRepositoryTests {
         Assertions.assertEquals("lili", data.get(0).y().getName());
     }
 
+    @Test
+    public void testHasOne2() {
+        DataSqlRepository<Student> studentDataRepository = DataRepositoryBuilder.from(Student.class).build();
+        DataSqlRepository<Teacher> teacherDataRepository = DataRepositoryBuilder.from(Teacher.class).build();
+
+        DataSqlRepository<DataPair<Student, Teacher>> repository = DataRepositories.hasOne(
+                studentDataRepository,
+                teacherDataRepository,
+                SqlConditions.eq(
+                        SqlFields.of(studentDataRepository, "teacherId", Integer.class),
+                        SqlFields.of(teacherDataRepository, "id", Integer.class)
+                )
+        );
+
+        List<DataPair<Student, Teacher>> data = DataFetcher.getList(repository);
+        Assertions.assertTrue(data.size() > 1);
+        Assertions.assertEquals("里斯", data.get(0).x().name());
+        Assertions.assertEquals("lili", data.get(0).y().getName());
+    }
+
     public record Student (Integer id, String name, int age, Integer teacherId) {
     }
 
@@ -100,10 +120,7 @@ public class DataRepositoryTests {
         private int age;
     }
 
-    @Data
-    public static class Department {
-        private Integer id;
-        private String name;
+    public record Department (Integer id, String name) {
     }
 
     @Data
