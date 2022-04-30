@@ -23,8 +23,8 @@ public class ClassUtils {
 
     public static void setObjFieldVal(Object proxy, String field, Object val) {
         try {
-            proxy.getClass().getDeclaredMethod("set" + SqlUtils.captureName(field), val.getClass()).invoke(proxy, val);
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            proxy.getClass().getDeclaredMethod("set" + SqlUtils.captureName(field), proxy.getClass().getDeclaredField(field).getType()).invoke(proxy, val);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | NoSuchFieldException e) {
             throw new DataRepositoryException("设置字段值失败", e);
         }
     }
