@@ -16,6 +16,11 @@ public class SqlFields {
                 }
 
                 @Override
+                public String toSql(String prefix) {
+                    return prefix + "." + fieldStr;
+                }
+
+                @Override
                 public Class<T> getFieldType() {
                     return fieldType;
                 }
@@ -38,6 +43,11 @@ public class SqlFields {
             }
 
             @Override
+            public String toSql(String prefix) {
+                return field.toSql(prefix);
+            }
+
+            @Override
             public Class<T> getFieldType() {
                 return field.getFieldType();
             }
@@ -54,6 +64,11 @@ public class SqlFields {
             @Override
             public String toSql() {
                 return "count(" + field.toSql() + ")";
+            }
+
+            @Override
+            public String toSql(String prefix) {
+                return "count(" + field.toSql(prefix) + ")";
             }
 
 
@@ -75,6 +90,11 @@ public class SqlFields {
             @Override
             public String toSql() {
                 return "count(1) as " + name;
+            }
+
+            @Override
+            public String toSql(String prefix) {
+                return toSql();
             }
 
             @Override
@@ -101,6 +121,11 @@ public class SqlFields {
             @Override
             public String toSql() {
                 return repository.getName() + "." + field;
+            }
+
+            @Override
+            public String toSql(String prefix) {
+                return prefix + "." + field;
             }
 
             @Override

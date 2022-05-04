@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.mengxinya.ys.sql.condition.SqlConditions.eqVal;
@@ -54,20 +53,18 @@ public class DataRepositoryTests {
     public void testSimpleGroup2() {
         DataRepository<Student> dataRepository = DataRepositoryBuilder
                 .from(Student.class)
-                .where(eqVal(SqlFields.of(Student.class, "age", Integer.class), 20))
-                .where(eqVal(SqlFields.of(Student.class, "id", Integer.class), 1))
                 .build();
 
         DataRepository<StudentCount> groupRepository = DataRepositories.groupBy(
                 dataRepository,
                 List.of(SqlFields.of(Student.class, "teacherId", Integer.class)),
-                List.of(SqlFields.count()),
+                List.of(SqlFields.named(SqlFields.count(), "numCount")),
                 StudentCount.class
         );
 
         List<StudentCount> studentCounts = DataFetcher.getList(groupRepository);
-        Assertions.assertEquals(1, studentCounts.size());
-        Assertions.assertEquals(2, studentCounts.get(0).count());
+        Assertions.assertEquals(2, studentCounts.size());
+        Assertions.assertEquals(3, studentCounts.get(0).numCount());
     }
 
     @Test
@@ -190,7 +187,7 @@ public class DataRepositoryTests {
     public record Student (Integer id, String name, int age, Integer teacherId) {
     }
 
-    public record StudentCount(Integer teacherId, Integer count) {}
+    public record StudentCount(Integer teacherId, Long numCount) {}
 
     @Data
     public static class Teacher {

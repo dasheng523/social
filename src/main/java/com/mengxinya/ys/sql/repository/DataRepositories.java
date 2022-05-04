@@ -78,6 +78,7 @@ public class DataRepositories {
                         Object val = rs.currentColumnValue(field.getFieldType());
                         String key = field.getFieldName();
                         dataMap.put(key, val);
+                        rs.nextColumn();
                     }
                     return ClassUtils.initObject(mappingClass, dataMap);
                 };
@@ -87,11 +88,11 @@ public class DataRepositories {
             public SqlQueryBuilder getSqlQueryBuilder() {
                 String tableName = SqlUtils.shortUuid();
                 SqlQueryBuilder builder = SqlQueryBuilder.from(repository.getSqlQueryBuilder(), tableName);
-                builder.setGroupByStatement(() -> groupFields.stream().map(field -> tableName + "." + field.toSql()).collect(Collectors.joining(", ")));
+                builder.setGroupByStatement(() -> groupFields.stream().map(field -> field.toSql(tableName)).collect(Collectors.joining(", ")));
                 builder.setSelectStatement(() ->
                         builder.getGroupByStatement().toSql()
                                 + ", "
-                                + selectFields.stream().map(field -> tableName + "." + field.toSql()).collect(Collectors.joining(", ")));
+                                + selectFields.stream().map(field -> field.toSql(tableName)).collect(Collectors.joining(", ")));
 
                 return builder;
             }
