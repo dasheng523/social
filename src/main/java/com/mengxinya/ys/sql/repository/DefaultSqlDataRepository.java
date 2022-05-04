@@ -31,7 +31,7 @@ public class DefaultSqlDataRepository<T> implements DataSqlRepository<T> {
         this.mappedClass = mappedClass;
         this.fieldNames = Arrays.stream(mappedClass.getDeclaredFields()).map(Field::getName).collect(Collectors.toList());
         this.queryBuilder = SqlQueryBuilder.from(mappedClass);
-        this.queryBuilder.setSelectStatement(() -> this.fieldNames.stream().map(name -> SqlUtils.toUnderlineCase(name) + " as " + name).collect(Collectors.joining(", ")));
+        this.queryBuilder.setSelectStatement(() -> this.fieldNames.stream().map(name -> SqlUtils.toUnderlineCase(name) + " as '" + name + "'").collect(Collectors.joining(", ")));
     }
 
 

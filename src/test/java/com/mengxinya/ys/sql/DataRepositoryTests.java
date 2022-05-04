@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.mengxinya.ys.sql.condition.SqlConditions.eqVal;
@@ -47,6 +48,26 @@ public class DataRepositoryTests {
         List<Student> students = DataFetcher.getList(dataRepository);
         Assertions.assertEquals(1, students.size());
         Assertions.assertEquals("里斯", students.get(0).name());
+    }
+
+    @Test
+    public void testSimpleGroup2() {
+        DataRepository<Student> dataRepository = DataRepositoryBuilder
+                .from(Student.class)
+                .where(eqVal(SqlFields.of(Student.class, "age", Integer.class), 20))
+                .where(eqVal(SqlFields.of(Student.class, "id", Integer.class), 1))
+                .build();
+
+        DataRepository<StudentCount> groupRepository = DataRepositories.groupBy(
+                dataRepository,
+                List.of(SqlFields.of(Student.class, "teacherId", Integer.class)),
+                List.of(SqlFields.count()),
+                StudentCount.class
+        );
+
+        List<StudentCount> studentCounts = DataFetcher.getList(groupRepository);
+        Assertions.assertEquals(1, studentCounts.size());
+        Assertions.assertEquals(2, studentCounts.get(0).count());
     }
 
     @Test
@@ -162,11 +183,14 @@ public class DataRepositoryTests {
         Assertions.assertTrue(data.size() > 1);
         Assertions.assertEquals("里斯", data.get(0).getOne(studentDataRepository).name());
         Assertions.assertEquals("数计系", data.get(0).getOne(departmentDataSqlRepository).name());
+
     }
 
 
     public record Student (Integer id, String name, int age, Integer teacherId) {
     }
+
+    public record StudentCount(Integer teacherId, Integer count) {}
 
     @Data
     public static class Teacher {
@@ -189,4 +213,6 @@ public class DataRepositoryTests {
         private Integer teacherId;
         private Integer departmentId;
     }
+
+
 }

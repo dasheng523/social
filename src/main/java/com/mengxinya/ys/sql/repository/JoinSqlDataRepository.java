@@ -1,21 +1,15 @@
 package com.mengxinya.ys.sql.repository;
 
-import com.mengxinya.ys.sql.condition.CheckerCondition;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public abstract class JoinSqlDataRepository<T, O, M> implements DataSqlRepository<T> {
+public abstract class JoinSqlDataRepository<T, O> implements DataSqlRepository<T> {
     private final DataSqlRepository<O> main;
 
     private final List<RepositoryRelate<O, ?>> relates;
-
-    public JoinSqlDataRepository(DataSqlRepository<O> main, DataSqlRepository<M> other, CheckerCondition<O, M> condition) {
-        this(main, List.of(new RepositoryRelate<>(other, condition)));
-    }
 
     public JoinSqlDataRepository(DataSqlRepository<O> main, List<RepositoryRelate<O, ?>> relates) {
         this.main = main;

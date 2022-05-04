@@ -12,7 +12,7 @@ public class SqlFields {
             return new SqlField<>() {
                 @Override
                 public String toSql() {
-                    return tClass.getSimpleName() + "." + fieldStr;
+                    return fieldStr;
                 }
 
                 @Override
@@ -56,6 +56,7 @@ public class SqlFields {
                 return "count(" + field.toSql() + ")";
             }
 
+
             @Override
             public Class<T> getFieldType() {
                 return field.getFieldType();
@@ -69,10 +70,11 @@ public class SqlFields {
     }
 
     public static SqlField<Long> count() {
+        String name = "count_" + SqlUtils.shortUuid();
         return new SqlField<>() {
             @Override
             public String toSql() {
-                return "count(1)";
+                return "count(1) as " + name;
             }
 
             @Override
@@ -82,7 +84,7 @@ public class SqlFields {
 
             @Override
             public String getFieldName() {
-                return "count" + SqlUtils.shortUuid();
+                return name;
             }
         };
     }
@@ -96,7 +98,6 @@ public class SqlFields {
             public T getFieldVal(M m) {
                 return fieldType.cast(ClassUtils.getObjFieldVal(m, field));
             }
-
             @Override
             public String toSql() {
                 return repository.getName() + "." + field;

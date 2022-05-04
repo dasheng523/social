@@ -29,16 +29,12 @@ public class SqlQueryBuilder implements SqlQuery{
         return builder;
     }
 
-    public static SqlQueryBuilder from(SqlQuery query) {
+    public static SqlQueryBuilder from(SqlQuery query, String asName) {
         SqlQueryBuilder builder = new SqlQueryBuilder();
-        builder.setSelectStatement(query.getSelectStatement());
-        builder.setFromStatement(query.getFromStatement());
-        builder.setWhereStatement(query.getWhereStatement());
-        builder.setGroupByStatement(query.getGroupByStatement());
-        builder.setHavingStatement(query.getHavingStatement());
-        builder.setOrderByStatement(query.getOrderByStatement());
-        builder.setLimitStatement(query.getLimitStatement());
-        builder.setJoinStatement(query.getJoinStatement());
+        builder.setFromStatement(() -> {
+            String sql = query.toSql();
+            return "(" + sql + ") as " + asName;
+        });
         return builder;
     }
 

@@ -1,8 +1,8 @@
 package com.mengxinya.ys.sql.repository;
 
-import com.mengxinya.ys.sql.DataPair;
-import com.mengxinya.ys.sql.RowStuffer;
+import com.mengxinya.ys.sql.*;
 import com.mengxinya.ys.sql.condition.CheckerCondition;
+import com.mengxinya.ys.sql.field.SqlField;
 
 import java.util.*;
 import java.util.function.Function;
@@ -56,6 +56,56 @@ public class DataRepositories {
             var data = rowStuffer.fillRow(rs);
             return new DataPair<>(data.main(), data.getMany(other));
         });
+    }
+
+    public static <T> DataSqlRepository<T> groupBy(DataRepository<?> repository, List<SqlField<?>> groupFields, List<SqlField<?>> selectFields, Class<T> mappingClass) {
+        if (groupFields == null || groupFields.size() == 0 || selectFields == null || selectFields.size() == 0) {
+            throw new DataRepositoryException("groupFields和selectFields必须有值");
+        }
+        return new DataSqlRepository<>() {
+            @Override
+            public Map<String, Object> getParams() {
+                return repository.getParams();
+            }
+
+            @Override
+            public RowStuffer<T> getRowStuffer() {
+                return rs -> {
+                    Map<String, Object> dataMap = new HashMap<>();
+                    List<SqlField<?>> fieldList = new ArrayList<>(groupFields);
+                    fieldList.addAll(selectFields);
+                    for (SqlField<?> field : fieldList) {
+                        Object val = rs.currentColumnValue(field.getFieldType());
+                        String key = field.getFieldName();
+                        dataMap.put(key, val);
+                    }
+                    return ClassUtils.initObject(mappingClass, dataMap);
+                };
+            }
+
+            @Override
+            public SqlQueryBuilder getSqlQueryBuilder() {
+                String tableName = SqlUtils.shortUuid();
+                SqlQueryBuilder builder = SqlQueryBuilder.from(repository.getSqlQueryBuilder(), tableName);
+                builder.setGroupByStatement(() -> groupFields.stream().map(field -> tableName + "." + field.toSql()).collect(Collectors.joining(", ")));
+                builder.setSelectStatement(() ->
+                        builder.getGroupByStatement().toSql()
+                                + ", "
+                                + selectFields.stream().map(field -> tableName + "." + field.toSql()).collect(Collectors.joining(", ")));
+
+                return builder;
+            }
+
+            @Override
+            public String getName() {
+                return repository.getName() + "Group";
+            }
+
+            @Override
+            public List<String> getFieldNames() {
+                return selectFields.stream().map(SqlField::getFieldName).collect(Collectors.toList());
+            }
+        };
     }
 
     public static <Source, Target> DataSqlRepository<Target> convertDataRepository(DataSqlRepository<Source> sourceDataSqlRepository, Function<RowStuffer<Source>, RowStuffer<Target>> converter) {
